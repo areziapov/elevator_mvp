@@ -199,14 +199,8 @@ input { font-family: var(--font); }
 }
 .auto-btn.on { border-color: var(--green2); color: var(--text); background: rgba(40,169,9,.12); }
 .auto-btn.on.auto-cash { border-color: var(--orange2); background: rgba(232,135,26,.10); }
-.auto-cash { color: var(--text); }
-.auto-cash-val { display: flex; align-items: center; color: var(--orange2); font-weight: 800; }
-.auto-cash-val input {
-  width: 58px; background: transparent; border: 0; color: var(--orange2); font-weight: 800; font-size: 16px;
-  text-align: right; outline: none; padding: 0;
-}
-.auto-cash.on .auto-cash-val, .auto-cash.on input { color: var(--orange2); }
-.auto-cash:not(.on) .auto-cash-val, .auto-cash:not(.on) input { color: #8f97ab; }
+.auto-cash-val { color: var(--muted); font-weight: 800; font-variant-numeric: tabular-nums; }
+.auto-cash.on .auto-cash-val { color: var(--orange2); }
 
 .footer { text-align: center; color: #5c5f66; font-weight: 700; letter-spacing: 2px; font-size: 12px; padding-top: 2px; }
 
