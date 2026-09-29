@@ -194,7 +194,7 @@ input { font-family: var(--font); }
 .auto-btn {
   flex: 1; height: 56px; border-radius: 18px; border: 2px solid var(--line);
   background: var(--panel);
-  font-weight: 800; font-size: 14px; letter-spacing: .5px; color: #b9bcc2;
+  font-weight: 800; font-size: 14px; letter-spacing: .5px; color: #fff;
   display: flex; align-items: center; justify-content: center; gap: 10px;
 }
 .auto-btn.on { border-color: var(--green2); color: var(--text); background: rgba(40,169,9,.12); }
