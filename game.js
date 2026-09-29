@@ -8,7 +8,7 @@
   const CFG = {
     houseEdge: 0.03,          // RTP 97%
     growthK: 0.10,            // m(t) = e^(k t)  → 2x ≈ 6.9s, 5x ≈ 16s, 10x ≈ 23s
-    countdownSec: 4,
+    countdownSec: 5,
     crashAnimSec: 2.4,
     minBet: 10,
     maxBet: 10000,
@@ -251,9 +251,9 @@
     el.roundLabel.textContent = 'ROUND #' + S.roundId;
     // passengers: [left hat, middle (behind), right hat]
     S.passengers = [
-      { slot: -1, type: 'hat', t0: 0.5, p: 0 },
-      { slot: 1, type: 'hat', t0: 1.1, p: 0 },
-      { slot: 0, type: 'lady', t0: 1.7, p: 0 },
+      { slot: -1, type: 'hat', t0: 0.7, p: 0 },
+      { slot: 1, type: 'hat', t0: 1.4, p: 0 },
+      { slot: 0, type: 'lady', t0: 2.1, p: 0 },
     ];
     // provably-fair commitment
     S.seed = randHex(16);
@@ -292,8 +292,8 @@
     S.phaseT += dt;
     if (S.phase === 'countdown') {
       const t = S.phaseT;
-      // doors: open 0.2–0.8s, close 3.2–3.8s
-      S.doorOpen = t < 0.2 ? 0 : t < 0.8 ? easeInOut((t - 0.2) / 0.6) : t < 3.2 ? 1 : t < 3.8 ? 1 - easeInOut((t - 3.2) / 0.6) : 0;
+      // doors: open 0.2–0.8s, close 3.9–4.5s
+      S.doorOpen = t < 0.2 ? 0 : t < 0.8 ? easeInOut((t - 0.2) / 0.6) : t < 3.9 ? 1 : t < 4.5 ? 1 - easeInOut((t - 3.9) / 0.6) : 0;
       for (const p of S.passengers) p.p = clamp((t - p.t0) / 1.0, 0, 1);
       const remain = Math.max(0, CFG.countdownSec - t);
       el.cdFill.style.width = (remain / CFG.countdownSec * 100) + '%';

@@ -47,8 +47,7 @@ input { font-family: var(--font); }
   padding-top: calc(12px + env(safe-area-inset-top));
   z-index: 3;
 }
-.logo { font-weight: 800; font-size: 22px; font-style: italic; letter-spacing: -.5px; color: var(--text); }
-.logo span { color: var(--red2); }
+.logo { font-weight: 800; font-size: 22px; font-style: italic; letter-spacing: -.5px; color: var(--red2); }
 .balance-chip {
   margin-left: auto; margin-right: 8px;
   display: flex; align-items: center; gap: 8px;
