@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0d1324" />
+  <title>SkyLift Crash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=1" />
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="balance-chip">
+      <span class="coin"></span>
+      <span id="balance">₴ 10,000.00</span>
+    </div>
+    <div class="top-btns">
+      <button class="icon-btn" id="btnFair" title="Provably fair" aria-label="Provably fair">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h15M15 4l4 4-4 4"/><path d="M20 16H5M9 12l-4 4 4 4"/></svg>
+      </button>
+      <button class="icon-btn" id="btnPlayers" title="Players" aria-label="Players">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><circle cx="16.5" cy="9" r="2.6"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M15.5 14c2.8 0 5.5 1.8 5.5 5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="scene" id="scene">
+    <canvas id="cv"></canvas>
+    <div class="hud">
+      <div id="mult" class="mult">x1.00</div>
+      <div id="crashText" class="crash-text hidden">CRASH</div>
+      <div id="countdown" class="countdown hidden">
+        <div class="cd-label">NEXT ROUND IN</div>
+        <div class="cd-num" id="cdNum">5</div>
+        <div class="cd-bar"><div class="cd-fill" id="cdFill"></div></div>
+      </div>
+      <div id="toast" class="toast hidden"></div>
+    </div>
+    <div class="history" id="history"></div>
+  </div>
+
+  <section class="controls">
+    <div class="bet-row">
+      <div class="bet-input">
+        <button id="betMinus" class="bet-btn" aria-label="Decrease bet">−</button>
+        <div class="bet-amount" id="betAmount">₴ 100.00</div>
+        <button id="betPlus" class="bet-btn" aria-label="Increase bet">+</button>
+      </div>
+      <button id="betHalf" class="chip-btn">½</button>
+      <button id="betDouble" class="chip-btn">2x</button>
+    </div>
+
+    <button id="mainBtn" class="main-btn state-bet">
+      <span class="main-top" id="mainTop">BET</span>
+      <span class="main-sub" id="mainSub">₴ 100.00</span>
+    </button>
+
+    <div class="auto-row">
+      <button id="autoBet" class="auto-btn">AUTO BET</button>
+      <button id="autoCash" class="auto-btn auto-cash">
+        <span>AUTO CASHOUT</span>
+        <span class="auto-cash-val"><input id="autoCashVal" type="text" inputmode="decimal" value="2.00" /><span class="auto-cash-x">x</span></span>
+      </button>
+    </div>
+
+    <div class="footer"><span id="roundLabel">ROUND #48213</span> · RTP 97%</div>
+  </section>
+
+  <!-- Players panel -->
+  <div class="panel hidden" id="playersPanel">
+    <div class="panel-head">
+      <span>LIVE BETS <span class="online" id="onlineCount">· 1,284 online</span></span>
+      <button class="panel-close" data-close="playersPanel">✕</button>
+    </div>
+    <div class="panel-body" id="playersList"></div>
+  </div>
+
+  <!-- Fairness panel -->
+  <div class="panel hidden" id="fairPanel">
+    <div class="panel-head">
+      <span>PROVABLY FAIR</span>
+      <button class="panel-close" data-close="fairPanel">✕</button>
+    </div>
+    <div class="panel-body fair-body">
+      <div class="fair-row"><span>Round</span><b id="fairRound">—</b></div>
+      <div class="fair-row"><span>Server seed hash (committed before round)</span><code id="fairHash">—</code></div>
+      <div class="fair-row"><span>Server seed (revealed after crash)</span><code id="fairSeed">—</code></div>
+      <div class="fair-row"><span>Result</span><b id="fairResult">—</b></div>
+      <p class="fair-note">crash = max(1.00, floor(100 · 0.97 / (1 − r)) / 100), where r = first 52 bits of SHA-256(seed + ":" + round) / 2<sup>52</sup>. House edge 3% ⇒ RTP 97%.</p>
+      <button class="auto-btn" id="resetBalance">RESET DEMO BALANCE</button>
+    </div>
+  </div>
+</div>
+<script src="game.js?v=1"></script>
+</body>
+</html>
