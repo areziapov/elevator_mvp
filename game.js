@@ -97,7 +97,8 @@
     countdown: $('countdown'), cdFill: $('cdFill'), toast: $('toast'),
     history: $('history'), betAmount: $('betAmount'), mainBtn: $('mainBtn'),
     mainTop: $('mainTop'), mainSub: $('mainSub'), autoBet: $('autoBet'), autoCash: $('autoCash'),
-    autoCashVal: $('autoCashVal'), roundLabel: $('roundLabel'),
+    autoCashVal: $('autoCashVal'), autoCashLabel: $('autoCashLabel'), roundLabel: $('roundLabel'),
+    cashPanel: $('cashPanel'), cashSwitch: $('cashSwitch'), cashPresets: $('cashPresets'),
     playersPanel: $('playersPanel'), fairPanel: $('fairPanel'), playersList: $('playersList'),
     onlineCount: $('onlineCount'), btnFair: $('btnFair'), btnPlayers: $('btnPlayers'),
     fairRound: $('fairRound'), fairHash: $('fairHash'), fairSeed: $('fairSeed'), fairResult: $('fairResult'),
@@ -717,32 +718,35 @@
   $('betHalf').addEventListener('click', () => setBetAmount(S.betAmount / 2));
   $('betDouble').addEventListener('click', () => setBetAmount(S.betAmount * 2));
   el.autoBet.addEventListener('click', () => { S.autoBet = !S.autoBet; el.autoBet.classList.toggle('on', S.autoBet); if (S.autoBet && S.phase === 'countdown' && !S.bet) placeBet(); });
-  el.autoCash.addEventListener('click', (e) => {
-    if (e.target === el.autoCashVal) return;
-    S.autoCash = !S.autoCash; el.autoCash.classList.toggle('on', S.autoCash);
-  });
-  el.autoCashVal.value = S.autoCashVal.toFixed(2);
-  el.autoCashVal.addEventListener('focus', () => el.autoCashVal.select());
-  el.autoCashVal.addEventListener('change', () => {
-    const v = parseFloat(String(el.autoCashVal.value).replace(',', '.'));
-    S.autoCashVal = isFinite(v) && v >= 1.01 ? Math.round(v * 100) / 100 : 2;
-    el.autoCashVal.value = S.autoCashVal.toFixed(2);
-    if (!S.autoCash) { S.autoCash = true; el.autoCash.classList.add('on'); }
-    save();
-  });
-  el.autoCashVal.addEventListener('keydown', (e) => { if (e.key === 'Enter') el.autoCashVal.blur(); });
-  function togglePanel(panel, btn) {
-    const other = panel === el.playersPanel ? el.fairPanel : el.playersPanel;
-    const otherBtn = panel === el.playersPanel ? el.btnFair : el.btnPlayers;
-    other.classList.add('hidden'); otherBtn.classList.remove('active');
-    const show = panel.classList.contains('hidden');
-    panel.classList.toggle('hidden', !show); btn.classList.toggle('active', show);
+  // --- auto cashout panel (no inline input: keyboards would cover the controls on phones)
+  function renderAutoCash() {
+    el.autoCashLabel.textContent = S.autoCashVal.toFixed(2) + 'x';
+    el.autoCash.classList.toggle('on', S.autoCash);
+    el.cashSwitch.classList.toggle('on', S.autoCash);
+    if (document.activeElement !== el.autoCashVal) el.autoCashVal.value = S.autoCashVal.toFixed(2);
+    for (const b of el.cashPresets.children) b.classList.toggle('sel', parseFloat(b.dataset.v) === S.autoCashVal);
   }
+  function setAutoCashVal(v) {
+    S.autoCashVal = isFinite(v) && v >= 1.01 ? Math.round(clamp(v, 1.01, 1000) * 100) / 100 : 2;
+    renderAutoCash(); save();
+  }
+  el.autoCash.addEventListener('click', () => openPanel(el.cashPanel, null));
+  el.cashSwitch.addEventListener('click', () => { S.autoCash = !S.autoCash; renderAutoCash(); });
+  $('cashMinus').addEventListener('click', () => setAutoCashVal(S.autoCashVal - (S.autoCashVal <= 2 ? 0.1 : S.autoCashVal <= 5 ? 0.5 : 1)));
+  $('cashPlus').addEventListener('click', () => setAutoCashVal(S.autoCashVal + (S.autoCashVal < 2 ? 0.1 : S.autoCashVal < 5 ? 0.5 : 1)));
+  el.cashPresets.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { setAutoCashVal(parseFloat(b.dataset.v)); S.autoCash = true; renderAutoCash(); } });
+  el.autoCashVal.addEventListener('focus', () => el.autoCashVal.select());
+  el.autoCashVal.addEventListener('change', () => { setAutoCashVal(parseFloat(String(el.autoCashVal.value).replace(',', '.'))); S.autoCash = true; renderAutoCash(); });
+  el.autoCashVal.addEventListener('keydown', (e) => { if (e.key === 'Enter') el.autoCashVal.blur(); });
+  $('cashDone').addEventListener('click', () => { el.autoCashVal.blur(); closePanels(); });
+  renderAutoCash();
+  const PANELS = [[el.playersPanel, el.btnPlayers], [el.fairPanel, el.btnFair], [el.cashPanel, null]];
+  function closePanels() { for (const [p, b] of PANELS) { p.classList.add('hidden'); if (b) b.classList.remove('active'); } }
+  function openPanel(panel, btn) { closePanels(); panel.classList.remove('hidden'); if (btn) btn.classList.add('active'); }
+  function togglePanel(panel, btn) { const show = panel.classList.contains('hidden'); closePanels(); if (show) openPanel(panel, btn); }
   el.btnPlayers.addEventListener('click', () => togglePanel(el.playersPanel, el.btnPlayers));
   el.btnFair.addEventListener('click', () => { updateFairPanel(); togglePanel(el.fairPanel, el.btnFair); });
-  document.querySelectorAll('.panel-close').forEach(b => b.addEventListener('click', () => {
-    $(b.dataset.close).classList.add('hidden'); el.btnFair.classList.remove('active'); el.btnPlayers.classList.remove('active');
-  }));
+  document.querySelectorAll('.panel-close').forEach(b => b.addEventListener('click', closePanels));
   el.resetBalance.addEventListener('click', () => { S.balance = CFG.startBalance; updateBalance(); save(); toast('BALANCE RESET'); });
   window.addEventListener('keydown', (e) => { if (e.code === 'Space' && document.activeElement !== el.autoCashVal) { e.preventDefault(); onMainClick(); } });
 

@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content" />
   <meta name="theme-color" content="#0d1324" />
   <title>Elevator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
 <div id="app">
@@ -19,7 +19,7 @@
     </div>
     <div class="top-btns">
       <button class="icon-btn" id="btnFair" title="Provably fair" aria-label="Provably fair">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h15M15 4l4 4-4 4"/><path d="M20 16H5M9 12l-4 4 4 4"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
       </button>
       <button class="icon-btn" id="btnPlayers" title="Players" aria-label="Players">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><circle cx="16.5" cy="9" r="2.6"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M15.5 14c2.8 0 5.5 1.8 5.5 5"/></svg>
@@ -64,7 +64,7 @@
       <button id="autoBet" class="auto-btn">AUTO BET</button>
       <button id="autoCash" class="auto-btn auto-cash">
         <span>AUTO CASHOUT</span>
-        <span class="auto-cash-val"><input id="autoCashVal" type="text" inputmode="decimal" value="2.00" /><span class="auto-cash-x">x</span></span>
+        <span class="auto-cash-val" id="autoCashLabel">2.00x</span>
       </button>
     </div>
 
@@ -78,6 +78,31 @@
       <button class="panel-close" data-close="playersPanel">✕</button>
     </div>
     <div class="panel-body" id="playersList"></div>
+  </div>
+
+  <!-- Auto cashout panel -->
+  <div class="panel cash-panel hidden" id="cashPanel">
+    <div class="panel-head">
+      <span>AUTO CASHOUT</span>
+      <button class="panel-close" data-close="cashPanel">✕</button>
+    </div>
+    <div class="panel-body cash-body">
+      <label class="switch-row">
+        <span>Enabled</span>
+        <span class="switch" id="cashSwitch"><span class="knob"></span></span>
+      </label>
+      <div class="stepper">
+        <button class="step-btn" id="cashMinus">−</button>
+        <div class="step-val"><input id="autoCashVal" type="text" inputmode="decimal" value="2.00" /><span>x</span></div>
+        <button class="step-btn" id="cashPlus">+</button>
+      </div>
+      <div class="presets" id="cashPresets">
+        <button data-v="1.10">1.10x</button><button data-v="1.50">1.50x</button><button data-v="2.00">2.00x</button>
+        <button data-v="3.00">3.00x</button><button data-v="5.00">5.00x</button><button data-v="10.00">10x</button>
+      </div>
+      <p class="fair-note">Bet is cashed out automatically when the multiplier reaches this value.</p>
+      <button class="done-btn" id="cashDone">DONE</button>
+    </div>
   </div>
 
   <!-- Fairness panel -->
@@ -96,6 +121,6 @@
     </div>
   </div>
 </div>
-<script src="game.js?v=5"></script>
+<script src="game.js?v=6"></script>
 </body>
 </html>
