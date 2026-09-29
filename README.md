@@ -1,45 +1,17 @@
-# SkyLift Crash — MVP
-
-Crash-игра в стиле Aviator: стеклянный лифт поднимается по бесконечному небоскрёбу, множитель растёт, игрок должен забрать выигрыш до обрыва тросов.
-
-Чистый статический проект: `index.html` + `style.css` + `game.js`. Без сборки, без бэкенда, без зависимостей — работает на любом статическом хостинге.
-
-## Как играть
-
-- Между раундами 5-секундный отсчёт: двери в задней стенке кабины открываются, пассажиры заходят и встают по сторонам.
-- **BET** во время отсчёта — ставка принята (баланс списывается сразу). Повторное нажатие — **CANCEL**.
-- Во время полёта кнопка показывает текущий множитель и сумму **CASH OUT**. Пробел — тоже кэшаут.
-- Нажатие **BET** во время полёта ставит ставку в очередь на следующий раунд.
-- **AUTO BET** — ставка в каждом раунде. **AUTO CASHOUT** — автозабор на указанном множителе (значение редактируется прямо в кнопке).
-- Иконка ⇄ — Provably Fair (хэш серверного сида публикуется до раунда, сид раскрывается после краша). Там же кнопка сброса демо-баланса.
-- Иконка 👥 — «живые ставки» (боты, для атмосферы).
-
-Баланс, история и ставка сохраняются в `localStorage` браузера.
-
-## Математика
-
-- **Точка краша**: `r = SHA-256(seed:round)[0..52 бит] / 2^52`, `crash = max(1.00, floor(100 · 0.97 / (1 − r)) / 100)`. Для любого целевого множителя `x` вероятность дожить ≈ `0.97 / x`, то есть матожидание любой стратегии = 97% (house edge 3%). Примерно 3% раундов — мгновенный краш на 1.00x.
-- **Рост множителя**: `m(t) = e^(0.10·t)` — 2x ≈ 7 с, 5x ≈ 16 с, 10x ≈ 23 с, 100x ≈ 46 с. Экспонента даёт «ускоряющееся» ощущение как в Aviator.
-- **Скорость лифта** пропорциональна множителю: `v = 70·m px/с` (кап 1500 px/с), то есть лифт ускоряется вместе с коэффициентом, при большой скорости окна размываются.
-
-Все параметры — в объекте `CFG` в начале `game.js`.
-
-## Локальный запуск
-
-Любой статический сервер, например:
-
-```bash
-python3 -m http.server 8080
-# открыть http://localhost:8080
-```
-
-## Хостинг (бесплатно, публичная ссылка)
-
-Игра — три статических файла, поэтому «лагать» ей не от чего: нет сервера, вся логика в браузере. Любой из вариантов даёт публичную ссылку за пару минут:
-
-1. **GitHub Pages** (уже настроено): в репозитории *Settings → Pages → Source: GitHub Actions*. После пуша в `main` workflow `.github/workflows/pages.yml` выложит сайт на `https://<user>.github.io/skyliftmvp/`.
-2. **Vercel**: `vercel.com → Add New Project → Import` этот репозиторий, framework «Other», без build command. Ссылка вида `https://skyliftmvp.vercel.app`. Авто-деплой на каждый пуш.
-3. **Netlify**: `app.netlify.com/drop` — просто перетащить папку с тремя файлами. Или импорт репозитория.
-4. **Cloudflare Pages**: `Workers & Pages → Create → Pages → Connect to Git`, без build command. Самый быстрый CDN.
-
-Для реального казино (деньги, античит) точку краша и баланс нужно перенести на сервер: клиент получает только хэш до раунда и сид после. Структура `startCountdown()/launch()/doCrash()` в `game.js` на это рассчитана.
+SkyLift Crash: MVP
+A crash game in the style of Aviator: a glass elevator climbs an endless skyscraper while the multiplier grows. The player must cash out before the cables snap.
+A pure static project: index.html + style.css + game.js. No build step, no backend, no dependencies. It works on any static hosting.
+How to Play
+Between rounds there is a 5-second countdown: the doors in the back wall of the cabin open, and passengers walk in and stand along the sides.
+BET during the countdown places your bet (the balance is deducted immediately). Pressing it again turns it into CANCEL.
+During the flight the button shows the current multiplier and the CASH OUT amount. The spacebar also cashes out.
+Pressing BET during the flight queues a bet for the next round.
+AUTO BET places a bet every round. AUTO CASHOUT cashes out automatically at the specified multiplier (the value is editable right inside the button).
+The ⇄ icon opens Provably Fair (the hash of the server seed is published before the round, and the seed is revealed after the crash). The demo balance reset button is also there.
+The 👥 icon shows "live bets" (bots, for atmosphere).
+Balance, history, and bet are saved in the browser's localStorage.
+Math
+Crash point: r = SHA-256(seed:round)[0..52 bits] / 2^52, crash = max(1.00, floor(100 · 0.97 / (1 − r)) / 100). For any target multiplier x, the probability of surviving that far is ≈ 0.97 / x, so the expected return of any strategy is 97% (house edge 3%). Roughly 3% of rounds are instant crashes at 1.00x.
+Multiplier growth: m(t) = e^(0.10·t). 2x ≈ 7 s, 5x ≈ 16 s, 10x ≈ 23 s, 100x ≈ 46 s. The exponential gives the "accelerating" feel of Aviator.
+Elevator speed is proportional to the multiplier: v = 70·m px/s (capped at 1500 px/s), so the elevator accelerates along with the multiplier, and at high speed the windows blur.
+All parameters are in the CFG object at the top of game.js.
