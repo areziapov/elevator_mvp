@@ -8,7 +8,7 @@
   const CFG = {
     houseEdge: 0.03,          // RTP 97%
     growthK: 0.10,            // m(t) = e^(k t)  → 2x ≈ 6.9s, 5x ≈ 16s, 10x ≈ 23s
-    countdownSec: 5,
+    countdownSec: 4,
     crashAnimSec: 2.4,
     minBet: 10,
     maxBet: 10000,
@@ -94,7 +94,7 @@
   // ------------------------------------------------------------------ DOM
   const el = {
     balance: $('balance'), mult: $('mult'), crashText: $('crashText'),
-    countdown: $('countdown'), cdNum: $('cdNum'), cdFill: $('cdFill'), toast: $('toast'),
+    countdown: $('countdown'), cdFill: $('cdFill'), toast: $('toast'),
     history: $('history'), betAmount: $('betAmount'), mainBtn: $('mainBtn'),
     mainTop: $('mainTop'), mainSub: $('mainSub'), autoBet: $('autoBet'), autoCash: $('autoCash'),
     autoCashVal: $('autoCashVal'), roundLabel: $('roundLabel'),
@@ -251,9 +251,9 @@
     el.roundLabel.textContent = 'ROUND #' + S.roundId;
     // passengers: [left hat, middle (behind), right hat]
     S.passengers = [
-      { slot: -1, type: 'hat', t0: 0.7, p: 0 },
-      { slot: 1, type: 'hat', t0: 1.4, p: 0 },
-      { slot: 0, type: 'lady', t0: 2.1, p: 0 },
+      { slot: -1, type: 'hat', t0: 0.5, p: 0 },
+      { slot: 1, type: 'hat', t0: 1.1, p: 0 },
+      { slot: 0, type: 'lady', t0: 1.7, p: 0 },
     ];
     // provably-fair commitment
     S.seed = randHex(16);
@@ -292,11 +292,10 @@
     S.phaseT += dt;
     if (S.phase === 'countdown') {
       const t = S.phaseT;
-      // doors: open 0.2–0.8s, close 3.9–4.5s
-      S.doorOpen = t < 0.2 ? 0 : t < 0.8 ? easeInOut((t - 0.2) / 0.6) : t < 3.9 ? 1 : t < 4.5 ? 1 - easeInOut((t - 3.9) / 0.6) : 0;
+      // doors: open 0.2–0.8s, close 3.2–3.8s
+      S.doorOpen = t < 0.2 ? 0 : t < 0.8 ? easeInOut((t - 0.2) / 0.6) : t < 3.2 ? 1 : t < 3.8 ? 1 - easeInOut((t - 3.2) / 0.6) : 0;
       for (const p of S.passengers) p.p = clamp((t - p.t0) / 1.0, 0, 1);
       const remain = Math.max(0, CFG.countdownSec - t);
-      el.cdNum.textContent = remain.toFixed(2);
       el.cdFill.style.width = (remain / CFG.countdownSec * 100) + '%';
       if (t >= CFG.countdownSec && S.seedHash) launch();
     } else if (S.phase === 'flying') {
@@ -572,16 +571,6 @@
     }
   }
 
-  function drawFloorSign(L) {
-    const alt = S.worldY;
-    const floorNo = alt < L.lobbyH ? 1 : 2 + Math.floor((alt - L.lobbyH) / L.FH);
-    const w = 52, h = 20, x = L.cx - w / 2, y = L.cabTop - L.cabW * .11 - 34;
-    ctx.fillStyle = COL.dark; roundRect(x, y, w, h, 5); ctx.fill();
-    ctx.strokeStyle = COL.cabBar; ctx.lineWidth = 1.5; roundRect(x, y, w, h, 5); ctx.stroke();
-    ctx.fillStyle = '#ffffff'; ctx.font = '800 11px Manrope, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText((S.phase === 'flying' ? '▲ ' : '') + floorNo, L.cx, y + h / 2 + 0.5);
-  }
-
   function drawPerson(x, baseY, h, type) {
     ctx.fillStyle = COL.person;
     const headR = h * 0.11;
@@ -708,7 +697,6 @@
       if (c.t < 0.2) { ctx.fillStyle = `rgba(255,60,80,${0.35 * (1 - c.t / 0.2)})`; ctx.fillRect(-20, -20, W + 40, H + 40); }
     } else {
       drawCabin(L);
-      drawFloorSign(L);
     }
     ctx.restore();
   }

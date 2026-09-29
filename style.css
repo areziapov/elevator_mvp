@@ -110,15 +110,13 @@ input { font-family: var(--font); }
 }
 
 .countdown {
-  position: absolute; left: 0; right: 0; top: 10%;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  position: absolute; left: 0; right: 0; top: 17%;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
 }
 .countdown.hidden { display: none; }
-.cd-label { color: var(--muted); font-weight: 800; letter-spacing: 2px; font-size: 11px; }
-.cd-num { font-weight: 800; font-size: clamp(52px, 17.5vw, 78px); line-height: 1; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -1.5px;
-  text-shadow: 0 0 24px rgba(255,255,255,.2), 0 2px 2px rgba(0,0,0,.5); }
-.cd-bar { width: 180px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; margin-top: 8px; }
-.cd-fill { height: 100%; background: var(--red2); border-radius: 3px; width: 100%; }
+.cd-label { color: #fff; font-weight: 800; letter-spacing: 1.5px; font-size: 15px; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.cd-bar { width: min(62%, 260px); height: 6px; border-radius: 3px; background: rgba(255,255,255,.14); overflow: hidden; }
+.cd-fill { height: 100%; background: var(--red2); border-radius: 3px; width: 100%; box-shadow: 0 0 10px rgba(229,26,53,.6); }
 
 .toast {
   position: absolute; left: 50%; top: 31%; transform: translateX(-50%);
