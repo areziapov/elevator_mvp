@@ -7,7 +7,7 @@
   // ------------------------------------------------------------------ config
   const CFG = {
     houseEdge: 0.03,          // RTP 97%
-    growthK: 0.10,            // m(t) = e^(k t)  → 2x ≈ 6.9s, 5x ≈ 16s, 10x ≈ 23s
+    growthK: 0.083,           // m(t) = e^(k t), fitted to a screen recording of Aviator → 2x ≈ 8.4s, 5x ≈ 19.4s, 10x ≈ 27.7s
     countdownSec: 5,
     crashAnimSec: 2.4,
     minBet: 10,

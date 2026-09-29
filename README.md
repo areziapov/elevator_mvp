@@ -37,15 +37,15 @@ For any target multiplier `x`, the probability of surviving that far is ≈ `0.9
 ### Multiplier growth
 
 ```text
-m(t) = e^(0.10 · t)
+m(t) = e^(0.083 · t)
 ```
 
 | Multiplier | Time to reach |
 | ---------: | ------------: |
-|         2x |          ≈ 7 s |
-|         5x |         ≈ 16 s |
-|        10x |         ≈ 23 s |
-|       100x |         ≈ 46 s |
+|         2x |          ≈ 8 s |
+|         5x |         ≈ 19 s |
+|        10x |         ≈ 28 s |
+|       100x |         ≈ 55 s |
 
 The exponential curve gives the "accelerating" feel of Aviator.
 
