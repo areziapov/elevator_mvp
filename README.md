@@ -1,4 +1,4 @@
-# 🛗 SkyLift Crash — MVP
+# 🛗 ELEVATOR — MVP
 
 A crash game in the style of Aviator: a glass elevator climbs an endless skyscraper while the multiplier grows. Cash out before the cables snap.
 
