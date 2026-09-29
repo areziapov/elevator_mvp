@@ -293,7 +293,7 @@
       S.doorOpen = t < 0.2 ? 0 : t < 0.8 ? easeInOut((t - 0.2) / 0.6) : t < 3.9 ? 1 : t < 4.5 ? 1 - easeInOut((t - 3.9) / 0.6) : 0;
       for (const p of S.passengers) p.p = clamp((t - p.t0) / 1.0, 0, 1);
       const remain = Math.max(0, CFG.countdownSec - t);
-      el.cdNum.textContent = Math.ceil(remain);
+      el.cdNum.textContent = remain.toFixed(2);
       el.cdFill.style.width = (remain / CFG.countdownSec * 100) + '%';
       if (t >= CFG.countdownSec && S.seedHash) launch();
     } else if (S.phase === 'flying') {
