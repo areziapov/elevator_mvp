@@ -13,8 +13,7 @@
     minBet: 10,
     maxBet: 10000,
     startBalance: 10000,
-    floorH: 78,               // px per floor (css px)
-    speedBase: 70,            // px/s at 1.00x  (v = speedBase * m)
+    speedBase: 80,            // px/s at 1.00x  (v = speedBase * m)
     speedCap: 1500,
     currency: '₴',
   };
@@ -70,7 +69,6 @@
     doorOpen: 0,              // 0..1
     crash: null,              // crash animation state
     shake: 0,
-    stars: [],
     particles: [],
     bots: [],
   };
@@ -116,8 +114,6 @@
     DPR = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = W * DPR; canvas.height = H * DPR;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    S.stars = [];
-    for (let i = 0; i < 60; i++) S.stars.push({ x: Math.random() * W, y: Math.random() * H * 3, r: Math.random() * 1.2 + .3, a: Math.random() });
   }
   new ResizeObserver(resize).observe(sceneEl);
   resize();
@@ -146,6 +142,12 @@
     }
   }
   function updateBalance() { el.balance.textContent = fmtMoney(S.balance); }
+  let lastMultKey = '';
+  function setMultColor(m) {
+    const c = multColor(m); const key = c.join(',');
+    if (key === lastMultKey) return; lastMultKey = key;
+    document.documentElement.style.setProperty('--mcol', key);
+  }
   function updateBet() { el.betAmount.textContent = fmtMoney(S.betAmount); updateMainBtn(); }
   function renderHistory() {
     el.history.innerHTML = '';
@@ -266,6 +268,7 @@
   }
   function launch() {
     S.phase = 'flying'; S.phaseT = 0; S.flightStart = performance.now(); S.mult = 1;
+    setMultColor(1);
     el.countdown.classList.add('hidden');
     el.mult.classList.remove('hidden');
     updateMainBtn();
@@ -303,6 +306,7 @@
       const v = Math.min(CFG.speedCap, CFG.speedBase * S.mult);
       S.worldY += v * dt;
       el.mult.textContent = fmtMult(S.mult);
+      setMultColor(S.mult);
       if (S.bet && !S.bet.cashedAt) {
         if (S.autoCash && S.mult >= S.autoCashVal) { S.mult = S.autoCashVal; cashOut(); S.mult = Math.exp(CFG.growthK * tf); }
         else { el.mainTop.textContent = fmtMult(S.mult); el.mainSub.textContent = 'CASH OUT ' + fmtMoney(S.bet.amount * S.mult); }
@@ -322,23 +326,42 @@
 
   // ------------------------------------------------------------------ drawing
   const COL = {
-    sky1: '#0a0f1f', sky2: '#0f1730', far: '#0d1428', farWin: '#161e36',
-    bldgL: '#121a2f', bldgR: '#121a2f', bldgEdge: '#1b2540', floorLine: 'rgba(255,255,255,0.035)',
-    winDark: '#1f2942', winLit1: '#f4c97a', winLit2: '#ffd89a', winLit3: '#e7b25f',
-    shaft: 'rgba(30,40,66,0.55)', rail: '#3b4a6c', cable: '#8a97b4',
-    cabFrame: '#cfd9ea', cabFrameDark: '#9fadc7', glass: 'rgba(150,175,215,0.35)', glassHi: 'rgba(220,235,255,0.28)',
-    cabBack: '#2f3f63', door: '#4c628f', doorDark: '#1c2740', person: '#0a0e19',
-    ground: '#151d33', road: '#0b101d', curb: '#26314d',
+    bg: '#0b0b0c',
+    wall: ['#1a1b1f', '#1c1d22', '#191a1e'], wallEdge: '#26282e',
+    slab: '#2a2c33', slabHi: '#3a3d46', ceiling: '#232529',
+    furn: '#2e3138', furn2: '#3a3d45', furn3: '#474a53', dark: '#141517',
+    glassNight: '#0f1420', cityDot: '#3d4a66', cityDotLit: '#7d8db3',
+    lamp: '#4a4d55',
+    plant: '#2f4a3a', plant2: '#3a5c47',
+    shaft: '#0e0e10', shaftRail: '#2a2c33', shaftTick: '#3a3d46', floorNum: '#4a4e58',
+    cable: '#a3122e',
+    cabFrame: '#d5163c', cabFrameDark: '#8d0f26', cabBar: '#b5122f',
+    glass: 'rgba(230,70,100,0.10)',
+    cabBack: '#232429', door: '#3b3e47', doorDark: '#17181c', person: '#07080b',
+    lobbyWall: '#1d1e23', lobbyTile: '#1f2126', lobbyTile2: '#25272d', lobbyDesk: '#2f3238', lobbyDeskTop: '#4a4d55',
   };
+  const RGB = { blue: [52, 180, 255], purple: [145, 62, 248], magenta: [216, 30, 170] };
+  function multColor(m) {
+    // Aviator-like: blue (<2x) → purple (~10x) → magenta (>=50x); smooth over log scale
+    const t = Math.log10(Math.max(1, m));
+    if (t < 0.3) return RGB.blue;
+    if (t < 1.0) { const k = (t - 0.3) / 0.7; return RGB.blue.map((v, i) => Math.round(lerp(v, RGB.purple[i], k))); }
+    if (t < 1.7) { const k = (t - 1.0) / 0.7; return RGB.purple.map((v, i) => Math.round(lerp(v, RGB.magenta[i], k))); }
+    return RGB.magenta;
+  }
 
   function layout() {
     const cabW = clamp(W * 0.27, 90, 150);
     const cabH = cabW * 1.35;
     const cx = W / 2;
     const cabTop = H * 0.40;
-    const shaftHalf = cabW * 0.62;
-    return { cabW, cabH, cx, cabTop, cabBot: cabTop + cabH, shaftL: cx - shaftHalf, shaftR: cx + shaftHalf };
+    const shaftHalf = cabW * 0.66;
+    const FH = Math.round(cabH * 1.18);          // room height
+    const lobbyH = Math.round(FH * 1.35);        // lobby is taller
+    return { cabW, cabH, cx, cabTop, cabBot: cabTop + cabH, shaftL: cx - shaftHalf, shaftR: cx + shaftHalf, FH, lobbyH };
   }
+  const floorAlt = (L, f) => f <= 0 ? 0 : L.lobbyH + (f - 1) * L.FH;   // altitude of the slab (bottom) of floor f
+  const floorH = (L, f) => f === 0 ? L.lobbyH : L.FH;
 
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
@@ -348,157 +371,198 @@
     ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
   }
 
-  function drawSky(L) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, COL.sky1); g.addColorStop(1, COL.sky2);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    // stars (slow parallax)
-    const off = (S.worldY * 0.15) % (H * 3);
-    ctx.fillStyle = '#ffffff';
-    for (const s of S.stars) {
-      let y = (s.y + off) % (H * 3); if (y > H) continue;
-      ctx.globalAlpha = 0.25 + 0.5 * s.a; ctx.beginPath(); ctx.arc(s.x, y, s.r, 0, 6.283); ctx.fill();
+  // --- room furniture (flat, minimal, dark grey)
+  function drawWindow(x, y, w, h, seed) {
+    ctx.fillStyle = COL.furn2; roundRect(x - 3, y - 3, w + 6, h + 6, 3); ctx.fill();
+    ctx.fillStyle = COL.glassNight; ctx.fillRect(x, y, w, h);
+    const cols = Math.max(2, Math.floor(w / 9)), rows = Math.max(3, Math.floor(h / 9));
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+      const hsh = hash2(seed * 31 + i, j * 17 + 3);
+      if (hsh < 0.28) { ctx.fillStyle = hsh < 0.09 ? COL.cityDotLit : COL.cityDot; ctx.fillRect(x + 3 + i * (w - 6) / cols, y + h * 0.35 + j * (h * 0.6) / rows, 3, 4); }
     }
-    ctx.globalAlpha = 1;
-    // far towers (parallax 0.35), endless tiling inside the shaft gap + above ground
-    const p = 0.35;
-    const groundSY = L.cabBot + S.worldY;
-    const tileH = 260;
-    const yoff = S.worldY * p;
-    ctx.fillStyle = COL.far;
-    const cols = [[L.shaftL - 20, 34], [L.shaftL + 10, 26], [L.shaftR - 40, 30], [L.shaftR + 4, 24]];
-    for (let i = 0; i < cols.length; i++) {
-      const [x, w] = cols[i];
-      // endless far columns with dim window dots
-      const top = -H; const bottom = Math.min(H, groundSY + 40);
-      ctx.fillStyle = COL.far; ctx.fillRect(x, top, w, bottom - top);
-      ctx.fillStyle = COL.farWin;
-      const step = 22; const start = -((yoff + i * 37) % step);
-      for (let y = start; y < bottom; y += step) {
-        if (y > groundSY) break;
-        if (hash2(i * 97 + 1, Math.round((y + yoff) / step)) < 0.5) ctx.fillRect(x + 6, y, w - 12, 8);
-      }
-    }
-    // red antenna light on the left far tower (blinks)
-    if (S.worldY < H) {
-      const blink = (Math.sin(performance.now() / 300) + 1) / 2;
-      const ax = L.shaftL - 3, ayy = L.cabBot - 130;
-      ctx.strokeStyle = '#3a2830'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(ax, groundSY); ctx.lineTo(ax, ayy); ctx.stroke();
-      ctx.fillStyle = `rgba(255,70,70,${0.5 + 0.5 * blink})`;
-      ctx.beginPath(); ctx.arc(ax, ayy, 4, 0, 6.283); ctx.fill();
-      ctx.fillStyle = `rgba(255,70,70,${0.15 * blink})`;
-      ctx.beginPath(); ctx.arc(ax, ayy, 12, 0, 6.283); ctx.fill();
+    ctx.fillStyle = COL.furn2; ctx.fillRect(x + w / 2 - 1, y, 2, h); ctx.fillRect(x, y + h * 0.45, w, 2);
+  }
+  function drawLamp(x, floorY, h, on) {
+    ctx.fillStyle = COL.lamp; ctx.fillRect(x - 1.5, floorY - h, 3, h);
+    ctx.fillRect(x - 9, floorY - 3, 18, 3);
+    ctx.beginPath(); ctx.moveTo(x - 11, floorY - h); ctx.lineTo(x + 11, floorY - h); ctx.lineTo(x + 7, floorY - h - 16); ctx.lineTo(x - 7, floorY - h - 16); ctx.closePath();
+    ctx.fillStyle = on ? '#6a5f4e' : COL.furn3; ctx.fill();
+    if (on) {
+      const g = ctx.createRadialGradient(x, floorY - h + 6, 4, x, floorY - h + 6, h * 0.9);
+      g.addColorStop(0, 'rgba(255,205,140,0.22)'); g.addColorStop(1, 'rgba(255,205,140,0)');
+      ctx.fillStyle = g; ctx.fillRect(x - h, floorY - h - 20, h * 2, h + 20);
     }
   }
-
-  function drawBuildings(L) {
-    const FH = CFG.floorH;
-    const groundSY = L.cabBot + S.worldY;         // screen y of altitude 0
-    const speed = S.phase === 'flying' ? Math.min(CFG.speedCap, CFG.speedBase * S.mult) : 0;
-    const blur = clamp((speed - 500) / 1000, 0, 1); // 0..1 motion blur factor
-    const sides = [
-      { x0: 0, x1: L.shaftL, id: 1 },
-      { x0: L.shaftR, x1: W, id: 2 },
-    ];
-    for (const side of sides) {
-      const bw = side.x1 - side.x0;
-      if (bw <= 0) continue;
-      // facade
-      ctx.fillStyle = COL.bldgL;
-      const topY = 0, botY = Math.min(H, groundSY);
-      if (botY > topY) ctx.fillRect(side.x0, topY, bw, botY - topY);
-      // edge highlight near the shaft
-      ctx.fillStyle = COL.bldgEdge;
-      if (side.id === 1) ctx.fillRect(side.x1 - 3, topY, 3, botY - topY); else ctx.fillRect(side.x0, topY, 3, botY - topY);
-      // windows grid
-      const winW = clamp(bw / 7, 14, 24), winH = winW * 1.9;
-      const cols = Math.max(1, Math.floor((bw - 24) / (winW * 2.6)));
-      const gap = (bw - cols * winW) / (cols + 1);
-      const fMin = Math.max(0, Math.floor((S.worldY - (H - L.cabBot)) / FH) - 1);
-      const fMax = Math.floor((S.worldY + L.cabBot) / FH) + 1;
-      for (let f = fMin; f <= fMax; f++) {
-        const floorBottomSY = groundSY - f * FH;
-        const floorTopSY = floorBottomSY - FH;
-        if (floorBottomSY < 0 || floorTopSY > H) continue;
-        // floor separator
-        ctx.fillStyle = COL.floorLine; ctx.fillRect(side.x0, floorTopSY, bw, 1);
-        const wy = floorTopSY + (FH - winH) / 2;
-        for (let c = 0; c < cols; c++) {
-          const h = hash2(f * 7 + side.id * 1000003, c * 13 + 7);
-          const lit = h < 0.42;
-          const wx = side.x0 + gap + c * (winW + gap);
-          if (lit) {
-            ctx.fillStyle = h < 0.14 ? COL.winLit2 : h < 0.28 ? COL.winLit1 : COL.winLit3;
-            if (blur > 0) { ctx.globalAlpha = 1 - blur * 0.45; roundRect(wx, wy - blur * 26, winW, winH + blur * 52, 3); ctx.fill(); ctx.globalAlpha = 1; }
-            else { roundRect(wx, wy, winW, winH, 3); ctx.fill(); }
-          } else {
-            ctx.fillStyle = COL.winDark; roundRect(wx, wy, winW, winH, 3); ctx.fill();
-          }
-        }
-      }
+  function drawSofa(x, floorY, w) {
+    const h = 22;
+    ctx.fillStyle = COL.furn; roundRect(x, floorY - h, w, h, 5); ctx.fill();
+    ctx.fillStyle = COL.furn2; roundRect(x + 4, floorY - h - 8, w - 8, 12, 4); ctx.fill();
+    ctx.fillStyle = COL.furn3; roundRect(x + 6, floorY - h + 4, w / 2 - 8, 9, 3); ctx.fill(); roundRect(x + w / 2 + 2, floorY - h + 4, w / 2 - 8, 9, 3); ctx.fill();
+    ctx.fillStyle = COL.furn; ctx.fillRect(x, floorY - h, 6, h + 3); ctx.fillRect(x + w - 6, floorY - h, 6, h + 3);
+  }
+  function drawPlant(x, floorY, s) {
+    ctx.fillStyle = COL.furn2; ctx.beginPath(); ctx.moveTo(x - 7 * s, floorY - 14 * s); ctx.lineTo(x + 7 * s, floorY - 14 * s); ctx.lineTo(x + 5 * s, floorY); ctx.lineTo(x - 5 * s, floorY); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = COL.plant;
+    for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(x + i * 5 * s, floorY - 24 * s + Math.abs(i) * 3 * s, 4 * s, 11 * s, i * 0.35, 0, 6.283); ctx.fill(); }
+    ctx.fillStyle = COL.plant2; ctx.beginPath(); ctx.ellipse(x, floorY - 30 * s, 3.5 * s, 10 * s, 0, 0, 6.283); ctx.fill();
+  }
+  function drawDesk(x, floorY, w, seed) {
+    ctx.fillStyle = COL.furn2; ctx.fillRect(x, floorY - 26, w, 4); ctx.fillRect(x + 3, floorY - 22, 4, 22); ctx.fillRect(x + w - 7, floorY - 22, 4, 22);
+    ctx.fillStyle = COL.dark; roundRect(x + w * 0.35, floorY - 46, w * 0.4, 16, 2); ctx.fill();
+    ctx.fillStyle = hash2(seed, 5) < 0.6 ? '#20344f' : '#1c1e24'; ctx.fillRect(x + w * 0.35 + 2, floorY - 44, w * 0.4 - 4, 12);
+    ctx.fillStyle = COL.furn2; ctx.fillRect(x + w * 0.55 - 1, floorY - 30, 2, 4);
+    ctx.fillStyle = COL.furn; roundRect(x - 16, floorY - 32, 12, 20, 3); ctx.fill(); ctx.fillRect(x - 11, floorY - 12, 2, 12); ctx.fillRect(x - 17, floorY - 2, 14, 2);
+  }
+  function drawShelf(x, y, w, h, seed) {
+    ctx.fillStyle = COL.furn; ctx.fillRect(x, y, w, h);
+    const rows = Math.max(2, Math.floor(h / 16));
+    for (let r = 0; r < rows; r++) {
+      const ry = y + 3 + r * (h - 6) / rows, rh = (h - 6) / rows - 3;
+      ctx.fillStyle = COL.dark; ctx.fillRect(x + 3, ry, w - 6, rh);
+      let bx = x + 5;
+      while (bx < x + w - 8) { const bw = 3 + Math.floor(hash2(seed + r * 7, Math.round(bx)) * 4); const t = hash2(seed + r, Math.round(bx) + 1); ctx.fillStyle = t < 0.3 ? '#5a3c3c' : t < 0.6 ? '#3e4a5c' : '#4a4d55'; ctx.fillRect(bx, ry + 2, bw, rh - 2); bx += bw + 2; }
     }
-    // ground / street (visible only at the start)
-    if (groundSY < H + 80) {
-      ctx.fillStyle = COL.ground; ctx.fillRect(0, groundSY, W, H - groundSY + 80);
-      ctx.fillStyle = COL.curb; ctx.fillRect(0, groundSY, W, 4);
-      ctx.fillStyle = COL.road; ctx.fillRect(0, groundSY + 26, W, H);
-      ctx.fillStyle = '#2a3552';
-      for (let x = 10; x < W; x += 44) ctx.fillRect(x, groundSY + 60, 22, 3);
-      // lamp posts on the sidewalk
-      for (const lx of [L.shaftL - 28, L.shaftR + 28]) {
-        ctx.fillStyle = '#2c3855'; ctx.fillRect(lx - 2, groundSY - 70, 4, 70);
-        ctx.fillRect(lx - 10, groundSY - 74, 20, 5);
-        const lg = ctx.createRadialGradient(lx, groundSY - 66, 2, lx, groundSY - 66, 46);
-        lg.addColorStop(0, 'rgba(255,220,150,0.55)'); lg.addColorStop(1, 'rgba(255,220,150,0)');
-        ctx.fillStyle = lg; ctx.fillRect(lx - 46, groundSY - 112, 92, 92);
-        ctx.fillStyle = '#ffe2a8'; roundRect(lx - 7, groundSY - 72, 14, 6, 2); ctx.fill();
+  }
+  function drawPicture(x, y, w, h, seed) {
+    ctx.fillStyle = COL.furn3; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = hash2(seed, 9) < 0.5 ? '#2b2530' : '#23292b'; ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
+    ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.beginPath(); ctx.arc(x + w * 0.6, y + h * 0.45, Math.min(w, h) * 0.18, 0, 6.283); ctx.fill();
+  }
+  function drawBed(x, floorY, w) {
+    ctx.fillStyle = COL.furn; roundRect(x, floorY - 18, w, 18, 3); ctx.fill();
+    ctx.fillStyle = COL.furn2; roundRect(x + 2, floorY - 26, w - 4, 10, 3); ctx.fill();
+    ctx.fillStyle = COL.furn3; roundRect(x + 5, floorY - 30, 18, 7, 2); ctx.fill();
+    ctx.fillStyle = COL.furn2; ctx.fillRect(x, floorY - 40, 5, 40);
+  }
+  function drawArmchair(x, floorY) {
+    ctx.fillStyle = COL.furn; roundRect(x, floorY - 22, 26, 22, 4); ctx.fill();
+    ctx.fillStyle = COL.furn2; roundRect(x + 3, floorY - 34, 20, 16, 4); ctx.fill();
+    ctx.fillStyle = COL.furn3; roundRect(x + 5, floorY - 18, 16, 8, 3); ctx.fill();
+  }
+
+  function drawRoom(x0, x1, top, bottom, f, side) {
+    const w = x1 - x0, h = bottom - top;
+    const variant = (f + (side === 2 ? 1 : 0)) % 3;
+    const seed = f * 11 + side * 101;
+    ctx.fillStyle = COL.wall[variant]; ctx.fillRect(x0, top, w, h);
+    ctx.fillStyle = COL.ceiling; ctx.fillRect(x0, top, w, 2);
+    const floorY = bottom - 10;
+    const pad = 12, inner = w - pad * 2;
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, top, w, h); ctx.clip();
+    if (variant === 0) {            // living room
+      drawWindow(x0 + pad + inner * 0.08, top + h * 0.16, inner * 0.55, h * 0.36, seed);
+      drawSofa(x0 + pad + inner * 0.05, floorY, inner * 0.6);
+      drawLamp(x0 + pad + inner * 0.86, floorY, h * 0.42, hash2(seed, 2) < 0.7);
+    } else if (variant === 1) {     // office
+      drawShelf(x0 + pad, top + h * 0.14, inner * 0.34, h * 0.5, seed);
+      drawPicture(x0 + pad + inner * 0.55, top + h * 0.2, inner * 0.3, h * 0.22, seed);
+      drawDesk(x0 + pad + inner * 0.5, floorY, inner * 0.48, seed);
+      drawPlant(x0 + pad + inner * 0.2, floorY, 0.9);
+    } else {                         // bedroom
+      drawWindow(x0 + pad + inner * 0.4, top + h * 0.16, inner * 0.5, h * 0.34, seed);
+      ctx.fillStyle = '#3a2a30'; ctx.fillRect(x0 + pad + inner * 0.36, top + h * 0.13, inner * 0.07, h * 0.42); ctx.fillRect(x0 + pad + inner * 0.87, top + h * 0.13, inner * 0.07, h * 0.42);
+      drawBed(x0 + pad + inner * 0.38, floorY, inner * 0.6);
+      drawArmchair(x0 + pad, floorY);
+      drawLamp(x0 + pad + inner * 0.3, floorY, h * 0.36, hash2(seed, 4) < 0.6);
+    }
+    ctx.restore();
+    ctx.fillStyle = COL.slab; ctx.fillRect(x0, floorY, w, 10);
+    ctx.fillStyle = COL.slabHi; ctx.fillRect(x0, floorY, w, 2);
+  }
+
+  function drawLobby(x0, x1, top, bottom, side) {
+    const w = x1 - x0, h = bottom - top;
+    ctx.fillStyle = COL.lobbyWall; ctx.fillRect(x0, top, w, h);
+    const floorY = bottom - 12;
+    const ts = 14;
+    for (let i = 0; i < Math.ceil(w / ts); i++) { ctx.fillStyle = (i % 2) ? COL.lobbyTile : COL.lobbyTile2; ctx.fillRect(x0 + i * ts, floorY, ts, 12); }
+    ctx.fillStyle = COL.slabHi; ctx.fillRect(x0, floorY, w, 2);
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, top, w, h); ctx.clip();
+    ctx.fillStyle = '#212227'; for (let px = x0 + 10; px < x1 - 10; px += 34) ctx.fillRect(px, top + h * 0.15, 22, h * 0.55);
+    for (let px = x0 + w * 0.3; px < x1; px += w * 0.4) {
+      ctx.fillStyle = COL.furn2; ctx.fillRect(px - 1, top, 2, h * 0.16);
+      ctx.beginPath(); ctx.moveTo(px - 10, top + h * 0.22); ctx.lineTo(px + 10, top + h * 0.22); ctx.lineTo(px + 6, top + h * 0.16); ctx.lineTo(px - 6, top + h * 0.16); ctx.closePath(); ctx.fillStyle = '#5a5347'; ctx.fill();
+      const g = ctx.createRadialGradient(px, top + h * 0.24, 2, px, top + h * 0.24, h * 0.5);
+      g.addColorStop(0, 'rgba(255,215,150,0.14)'); g.addColorStop(1, 'rgba(255,215,150,0)');
+      ctx.fillStyle = g; ctx.fillRect(px - h * 0.5, top + h * 0.2, h, h * 0.6);
+    }
+    if (side === 1) {
+      ctx.fillStyle = COL.lobbyDesk; roundRect(x0 + w * 0.2, floorY - 34, w * 0.62, 34, 3); ctx.fill();
+      ctx.fillStyle = COL.lobbyDeskTop; ctx.fillRect(x0 + w * 0.17, floorY - 38, w * 0.68, 5);
+      ctx.fillStyle = '#d5163c'; ctx.fillRect(x0 + w * 0.2, floorY - 24, w * 0.62, 2);
+      drawPlant(x0 + w * 0.92, floorY, 1.1);
+    } else {
+      drawSofa(x0 + w * 0.12, floorY, w * 0.5);
+      drawPlant(x0 + w * 0.8, floorY, 1.1);
+      ctx.fillStyle = COL.dark; roundRect(x0 + w * 0.3, top + h * 0.34, w * 0.4, 16, 3); ctx.fill();
+      ctx.fillStyle = '#d5163c'; ctx.font = '800 9px Manrope, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('LOBBY', x0 + w * 0.5, top + h * 0.34 + 8.5);
+    }
+    ctx.restore();
+  }
+
+  function drawBuilding(L) {
+    const groundSY = L.cabBot + S.worldY;         // screen y of altitude 0 (lobby floor)
+    ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, H);
+    const sides = [{ x0: 0, x1: L.shaftL, id: 1 }, { x0: L.shaftR, x1: W, id: 2 }];
+    const altTop = S.worldY + L.cabBot + 10;
+    const altBot = S.worldY - (H - L.cabBot) - 10;
+    const fStart = altBot <= L.lobbyH ? 0 : 1 + Math.floor((altBot - L.lobbyH) / L.FH);
+    for (const side of sides) {
+      for (let f = fStart; ; f++) {
+        const a0 = floorAlt(L, f), a1 = a0 + floorH(L, f);
+        if (a0 > altTop) break;
+        const bottom = groundSY - a0, top = groundSY - a1;
+        if (f === 0) drawLobby(side.x0, side.x1, top, bottom, side.id);
+        else drawRoom(side.x0, side.x1, top, bottom, f, side.id);
       }
-      // building entrances at ground level
-      for (const [ex, ew] of [[L.shaftL * 0.5 - 22, 44], [L.shaftR + (W - L.shaftR) * 0.5 - 22, 44]]) {
-        ctx.fillStyle = '#0d1424'; roundRect(ex, groundSY - 58, ew, 58, 4); ctx.fill();
-        ctx.fillStyle = 'rgba(255,214,150,0.18)'; ctx.fillRect(ex + 4, groundSY - 54, ew - 8, 52);
-        ctx.fillStyle = '#26314d'; ctx.fillRect(ex - 6, groundSY - 64, ew + 12, 6);
-      }
+      ctx.fillStyle = COL.wallEdge;
+      if (side.id === 1) ctx.fillRect(side.x1 - 4, 0, 4, H); else ctx.fillRect(side.x0, 0, 4, H);
+    }
+    if (groundSY < H) {
+      ctx.fillStyle = '#0a0a0b'; ctx.fillRect(0, groundSY, W, H - groundSY);
+      ctx.fillStyle = '#121214';
+      for (let y = groundSY + 14; y < H; y += 22) for (let x = ((y / 22) | 0) % 2 ? 0 : 20; x < W; x += 40) ctx.fillRect(x, y, 36, 10);
     }
   }
 
   function drawShaft(L) {
-    const FH = CFG.floorH;
     const groundSY = L.cabBot + S.worldY;
     const bottom = Math.min(H, groundSY);
-    // translucent shaft strip
     ctx.fillStyle = COL.shaft; ctx.fillRect(L.shaftL, 0, L.shaftR - L.shaftL, bottom);
-    // guide rails
-    ctx.strokeStyle = COL.rail; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(L.shaftL + 1, 0); ctx.lineTo(L.shaftL + 1, bottom); ctx.moveTo(L.shaftR - 1, 0); ctx.lineTo(L.shaftR - 1, bottom); ctx.stroke();
-    // floor ticks on rails
-    ctx.strokeStyle = '#4a5a80'; ctx.lineWidth = 2;
-    const fMin = Math.max(0, Math.floor((S.worldY - (H - L.cabBot)) / FH) - 1);
-    const fMax = Math.floor((S.worldY + L.cabBot) / FH) + 1;
-    ctx.beginPath();
-    for (let f = fMin; f <= fMax; f++) {
-      const y = groundSY - f * FH;
-      if (y < 0 || y > bottom) continue;
-      ctx.moveTo(L.shaftL + 1, y); ctx.lineTo(L.shaftL + 12, y);
-      ctx.moveTo(L.shaftR - 12, y); ctx.lineTo(L.shaftR - 1, y);
+    ctx.fillStyle = COL.shaftRail; ctx.fillRect(L.shaftL + 4, 0, 3, bottom); ctx.fillRect(L.shaftR - 7, 0, 3, bottom);
+    ctx.font = '800 10px Manrope, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    const altTop = S.worldY + L.cabBot + 10, altBot = S.worldY - (H - L.cabBot) - 10;
+    const fStart = altBot <= L.lobbyH ? 0 : 1 + Math.floor((altBot - L.lobbyH) / L.FH);
+    for (let f = fStart; ; f++) {
+      const a0 = floorAlt(L, f); if (a0 > altTop) break;
+      const y = groundSY - a0;
+      ctx.fillStyle = COL.shaftTick; ctx.fillRect(L.shaftL + 4, y - 3, 16, 3); ctx.fillRect(L.shaftR - 20, y - 3, 16, 3);
+      ctx.fillStyle = COL.floorNum; ctx.fillText(f === 0 ? 'L' : String(f + 1), L.shaftL + 9, y - 6);
     }
-    ctx.stroke();
-    // cabin light glow on the shaft
-    const g = ctx.createRadialGradient(L.cx, L.cabTop + L.cabH * .5, 10, L.cx, L.cabTop + L.cabH * .5, L.cabW * 1.6);
-    g.addColorStop(0, 'rgba(140,170,230,0.22)'); g.addColorStop(1, 'rgba(140,170,230,0)');
-    ctx.fillStyle = g; ctx.fillRect(L.shaftL - 40, L.cabTop - L.cabW, L.shaftR - L.shaftL + 80, L.cabH + L.cabW * 2);
+    const g = ctx.createRadialGradient(L.cx, L.cabTop + L.cabH * .5, 10, L.cx, L.cabTop + L.cabH * .5, L.cabW * 1.5);
+    g.addColorStop(0, 'rgba(220,40,80,0.16)'); g.addColorStop(1, 'rgba(220,40,80,0)');
+    ctx.fillStyle = g; ctx.fillRect(L.shaftL, L.cabTop - L.cabW, L.shaftR - L.shaftL, L.cabH + L.cabW * 2);
+    const speed = S.phase === 'flying' ? Math.min(CFG.speedCap, CFG.speedBase * S.mult) : 0;
+    if (speed > 450) {
+      const a = clamp((speed - 450) / 900, 0, 0.5);
+      ctx.strokeStyle = `rgba(255,255,255,${a * 0.25})`; ctx.lineWidth = 1;
+      for (let i = 0; i < 6; i++) {
+        const x = L.shaftL + 14 + hash2(i, 3) * (L.shaftR - L.shaftL - 28);
+        const y = ((performance.now() * (0.6 + hash2(i, 5)) + i * 200) % (H + 200)) - 100;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 40 + a * 80); ctx.stroke();
+      }
+    }
   }
 
   function drawCables(L, cabTopY, snapped) {
     const xs = [L.cx - L.cabW * .42, L.cx, L.cx + L.cabW * .42];
-    ctx.strokeStyle = COL.cable; ctx.lineWidth = 1.6;
+    ctx.strokeStyle = COL.cable; ctx.lineWidth = 2;
     for (let i = 0; i < xs.length; i++) {
       const x = xs[i];
       ctx.beginPath();
       if (!snapped) { ctx.moveTo(x, -10); ctx.lineTo(x, cabTopY); }
       else {
-        // broken cables curl and swing
         const t = S.crash.t;
         const endY = L.cabTop - 40 - i * 25 + Math.sin(t * 6 + i) * 10;
         ctx.moveTo(x, -10);
@@ -508,14 +572,22 @@
     }
   }
 
+  function drawFloorSign(L) {
+    const alt = S.worldY;
+    const floorNo = alt < L.lobbyH ? 1 : 2 + Math.floor((alt - L.lobbyH) / L.FH);
+    const w = 52, h = 20, x = L.cx - w / 2, y = L.cabTop - L.cabW * .11 - 34;
+    ctx.fillStyle = COL.dark; roundRect(x, y, w, h, 5); ctx.fill();
+    ctx.strokeStyle = COL.cabBar; ctx.lineWidth = 1.5; roundRect(x, y, w, h, 5); ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.font = '800 11px Manrope, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText((S.phase === 'flying' ? '▲ ' : '') + floorNo, L.cx, y + h / 2 + 0.5);
+  }
+
   function drawPerson(x, baseY, h, type) {
-    // simple black silhouette; x = center, baseY = feet, h = height
     ctx.fillStyle = COL.person;
     const headR = h * 0.11;
     const headY = baseY - h + headR;
-    // body (torso + legs)
     ctx.beginPath();
-    const sw = h * 0.36; // shoulders width
+    const sw = h * 0.36;
     const shoulderY = baseY - h * 0.7;
     ctx.moveTo(x - sw / 2, baseY);
     ctx.lineTo(x - sw / 2, shoulderY + h * 0.08);
@@ -528,14 +600,11 @@
     ctx.quadraticCurveTo(x + sw / 2, shoulderY, x + sw / 2, shoulderY + h * 0.08);
     ctx.lineTo(x + sw / 2, baseY);
     ctx.closePath(); ctx.fill();
-    // head
     ctx.beginPath(); ctx.arc(x, headY, headR, 0, 6.283); ctx.fill();
     if (type === 'hat') {
-      // fedora
       ctx.beginPath(); ctx.ellipse(x, headY - headR * .55, headR * 1.9, headR * .42, 0, 0, 6.283); ctx.fill();
       roundRect(x - headR * .95, headY - headR * 2.1, headR * 1.9, headR * 1.6, headR * .35); ctx.fill();
     } else {
-      // hair
       ctx.beginPath(); ctx.moveTo(x - headR * 1.15, shoulderY + h * .02);
       ctx.quadraticCurveTo(x - headR * 1.3, headY - headR * .4, x, headY - headR * 1.15);
       ctx.quadraticCurveTo(x + headR * 1.3, headY - headR * .4, x + headR * 1.15, shoulderY + h * .02);
@@ -546,9 +615,7 @@
   function drawCabin(L) {
     const { cabW, cabH, cx } = L;
     const x0 = cx - cabW / 2, y0 = L.cabTop;
-    // --- interior (back wall)
     ctx.fillStyle = COL.cabBack; ctx.fillRect(x0, y0, cabW, cabH);
-    // back door frame + sliding panels
     const dW = cabW * 0.56, dH = cabH * 0.68, dx = cx - dW / 2, dy = y0 + cabH * 0.10;
     ctx.fillStyle = COL.doorDark; roundRect(dx - 3, dy - 3, dW + 6, dH + 3, 6); ctx.fill();
     ctx.save();
@@ -557,22 +624,20 @@
     ctx.fillStyle = COL.door;
     ctx.fillRect(dx - open, dy, dW / 2, dH);
     ctx.fillRect(dx + dW / 2 + open, dy, dW / 2, dH);
-    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
     ctx.fillRect(dx - open + 6, dy + 6, dW / 2 - 12, dH * .45);
     ctx.fillRect(dx + dW / 2 + open + 6, dy + 6, dW / 2 - 12, dH * .45);
     ctx.fillStyle = COL.doorDark; ctx.fillRect(cx - 1 - open, dy, 2, dH); ctx.fillRect(cx - 1 + open, dy, 2, dH);
-    // lit hallway visible when open
     if (S.doorOpen > 0.02) {
       const g = ctx.createLinearGradient(0, dy, 0, dy + dH);
       g.addColorStop(0, 'rgba(255,214,150,0.55)'); g.addColorStop(1, 'rgba(255,214,150,0.15)');
       ctx.fillStyle = g; ctx.fillRect(cx - open, dy, open * 2, dH);
     }
     ctx.restore();
-    // --- passengers (walk in from the door to their slots)
     const floorY = y0 + cabH * 0.86;
     const ph = cabH * 0.52;
     const slotX = (slot) => cx + slot * cabW * 0.30;
-    const order = [...S.passengers].sort((a, b) => (a.slot === 0 ? -1 : 1) - (b.slot === 0 ? -1 : 1)); // middle first (behind)
+    const order = [...S.passengers].sort((a, b) => (a.slot === 0 ? -1 : 1) - (b.slot === 0 ? -1 : 1));
     for (const p of order) {
       if (p.p <= 0) continue;
       const e = easeOut(p.p);
@@ -585,38 +650,35 @@
       drawPerson(x, y + bob, ph * scale, p.type);
       ctx.globalAlpha = 1;
     }
-    // control panel (orange + white buttons)
-    ctx.fillStyle = '#f2a23a'; roundRect(x0 + cabW * .80, y0 + cabH * .42, cabW * .07, cabW * .07, 2); ctx.fill();
+    ctx.fillStyle = '#d5163c'; roundRect(x0 + cabW * .80, y0 + cabH * .42, cabW * .07, cabW * .07, 2); ctx.fill();
     ctx.fillStyle = '#e8eef8'; roundRect(x0 + cabW * .80, y0 + cabH * .42 + cabW * .10, cabW * .07, cabW * .07, 2); ctx.fill();
-    // --- glass
     ctx.fillStyle = COL.glass; ctx.fillRect(x0, y0, cabW, cabH);
     const gh = ctx.createLinearGradient(x0, y0, x0 + cabW, y0 + cabH);
-    gh.addColorStop(0, 'rgba(255,255,255,0.18)'); gh.addColorStop(.45, 'rgba(255,255,255,0.02)'); gh.addColorStop(1, 'rgba(255,255,255,0.10)');
+    gh.addColorStop(0, 'rgba(255,255,255,0.14)'); gh.addColorStop(.45, 'rgba(255,255,255,0.02)'); gh.addColorStop(1, 'rgba(255,255,255,0.08)');
     ctx.fillStyle = gh; ctx.fillRect(x0, y0, cabW, cabH);
-    // --- frame
     ctx.strokeStyle = COL.cabFrame; ctx.lineWidth = 5; ctx.lineJoin = 'round';
     ctx.strokeRect(x0, y0, cabW, cabH);
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = COL.cabBar; ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(x0, y0 + cabH * .78); ctx.lineTo(x0 + cabW, y0 + cabH * .78); // horizontal bar
+    ctx.moveTo(x0, y0 + cabH * .78); ctx.lineTo(x0 + cabW, y0 + cabH * .78);
     ctx.moveTo(x0 + cabW * .25, y0); ctx.lineTo(x0 + cabW * .25, y0 + cabH);
     ctx.moveTo(x0 + cabW * .75, y0); ctx.lineTo(x0 + cabW * .75, y0 + cabH);
     ctx.stroke();
-    // roof (trapezoid) and base
     ctx.fillStyle = COL.cabFrame;
     ctx.beginPath(); ctx.moveTo(x0 - 4, y0 - 2); ctx.lineTo(x0 + cabW + 4, y0 - 2); ctx.lineTo(x0 + cabW - 6, y0 - cabW * .11); ctx.lineTo(x0 + 6, y0 - cabW * .11); ctx.closePath(); ctx.fill();
     ctx.fillStyle = COL.cabFrameDark;
     ctx.beginPath(); ctx.moveTo(x0 - 4, y0 + cabH + 2); ctx.lineTo(x0 + cabW + 4, y0 + cabH + 2); ctx.lineTo(x0 + cabW - 12, y0 + cabH + cabW * .13); ctx.lineTo(x0 + 12, y0 + cabH + cabW * .13); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(x0 + 8, y0 - cabW * .11 + 1, cabW - 16, 2);
   }
 
   function drawParticles(L) {
     for (const p of S.particles) {
       const a = clamp(p.life, 0, 1);
       if (p.kind === 'spark') {
-        ctx.fillStyle = `rgba(255,${160 + Math.floor(80 * a)},60,${a})`;
+        ctx.fillStyle = `rgba(255,${90 + Math.floor(120 * a)},80,${a})`;
         ctx.beginPath(); ctx.arc(L.cx + p.x, L.cabTop + p.y, p.r, 0, 6.283); ctx.fill();
       } else {
-        ctx.fillStyle = `rgba(207,217,234,${a})`;
+        ctx.fillStyle = `rgba(213,22,60,${a})`;
         ctx.fillRect(L.cx + p.x, L.cabTop + p.y, p.r * 2.5, p.r * 1.2);
       }
     }
@@ -629,8 +691,7 @@
       const s = S.shake * 9;
       ctx.translate((Math.random() - .5) * s, (Math.random() - .5) * s);
     }
-    drawSky(L);
-    drawBuildings(L);
+    drawBuilding(L);
     drawShaft(L);
     const crashed = S.phase === 'crashed';
     drawCables(L, crashed ? L.cabTop : L.cabTop - L.cabW * .11, crashed);
@@ -640,14 +701,14 @@
       ctx.translate(L.cx, L.cabTop + L.cabH / 2 + c.fallY);
       ctx.rotate(c.rot);
       ctx.translate(-L.cx, -(L.cabTop + L.cabH / 2));
-      // flash the cabin red at the moment of impact
       drawCabin(L);
       if (c.t < 0.35) { ctx.fillStyle = `rgba(255,80,80,${0.55 * (1 - c.t / 0.35)})`; ctx.fillRect(L.cx - L.cabW / 2, L.cabTop, L.cabW, L.cabH); }
       ctx.restore();
       drawParticles(L);
-      if (c.t < 0.2) { ctx.fillStyle = `rgba(255,120,80,${0.35 * (1 - c.t / 0.2)})`; ctx.fillRect(-20, -20, W + 40, H + 40); }
+      if (c.t < 0.2) { ctx.fillStyle = `rgba(255,60,80,${0.35 * (1 - c.t / 0.2)})`; ctx.fillRect(-20, -20, W + 40, H + 40); }
     } else {
       drawCabin(L);
+      drawFloorSign(L);
     }
     ctx.restore();
   }
@@ -698,6 +759,7 @@
   window.addEventListener('keydown', (e) => { if (e.code === 'Space' && document.activeElement !== el.autoCashVal) { e.preventDefault(); onMainClick(); } });
 
   // ------------------------------------------------------------------ boot
+  if (location.search.includes('debug')) window.SKYLIFT = { S, CFG };
   updateBalance(); updateBet(); renderHistory();
   startCountdown();
   requestAnimationFrame(frame);
